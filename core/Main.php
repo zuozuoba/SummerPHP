@@ -134,7 +134,7 @@ class Main
 	public function run()
 	{
 		if ($this->action == 'initc') {
-			$this->notify('非法访问', $this->moduleUrl, '2');
+			Fun::notify('非法访问', $this->moduleUrl, '2');
 		}
 
 		//包含类文件
