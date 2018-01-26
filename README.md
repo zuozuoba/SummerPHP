@@ -2,7 +2,7 @@
 ##### a small, concise and more static call PHP framework
 ##### documents: http://doc.hearu.top/index.html
 
-# project list
+# project structure
 ```
 Summer PHP Framework
 |-- core    core of this framework
@@ -63,32 +63,61 @@ Test::link('user')
 
 ### Redis message queue
 
-```
 example here : /modules/cli/queue.php
 
-1. push to the queue which name is 'redisKey'
-代码调用Lib: RedisQueue::pushQueue(redisKey, Json)
-其中Json: _class和_method是必传的, 用于回调
+- 核心类: core/RedisQueue::class
+- 例子: /modules/cli/queue.php
+
+#### 1. push to the queue which name is $redisKeyName
+``` 
+RedisQueue::pushQueue($redisKeyName, $params)
+``` 
+- the message push to the queue is $params, encode with method json_encode, there are some imporent field in $params:
+
+|name|data type |explain|
+|---|---|---|
+|_class|string|callback class name|
+|_method|string|callback member function name|
+|other params|-|-|
  
-2. pop, 阻塞出队列
-> URL: www.summer.com/cli/queue/blockpop/queuekey/{redisKey} (直接启动一个新的进程)
-> URL: www.summer.com/cli/queue/watch/queuekey/{redisKey} (有同名的进程就不再启动新的)
+#### 2. pop, pop from queue with block
 
-> CLI: php cli.php -q cli/queue/blockpop/queuekey/{redisKey} (直接启动一个新的进程)
-> CLI: php cli.php -q cli/queue/watch/queuekey/{redisKey} (有同名的进程就不再启动新的)
-
-3. 监控pop进程, 挂掉后拉起(需要在cli下配合crontab或者supervisor使用)
-crontab: 1 * * * * php cli.php -q cli/queue/watch/queuekey/{redisKey}
-
-4. restart, 如果更新代码后需要重启, 重新pop
-> URL: www.summer.com/cli/queue/restart/queuekey/{redisKey}
-> CLI: php cli.php -q cli/queue/restart/queuekey/{redisKey}
-
- 注意: 
-1. 通过浏览器里访问来触发相关命令的, 访问后会出现一直等待响应到超时的情况
-不用担心, 访问后关掉页面即可, 因为pop程序是while(true), 已经在后台运行了
-
-2. 如果不传递queuekey(队列名字), 则使用默认队列名字
-
+##### trigger from url
 ```
+www.hearu.top/cli/queue/blockpop/queuekey/{redisKeyName} (直接启动一个新的进程)
+www.hearu.top/cli/queue/watch/queuekey/{redisKeyName} (有同名的进程就不再启动新的)
+```
+
+##### trigger from cli
+```
+php cli.php -q cli/queue/blockpop/queuekey/{redisKeyName} (直接启动一个新的进程)
+
+php cli.php -q cli/queue/watch/queuekey/{redisKeyName} (有同名的进程就不再启动新的)
+```
+- when the message pop from the queue, the program will take out the value of _class and _method and execute _method 
+
+#### 3. whatch the pop process , restart them if they were gone (use crontab or supervisor as a watcher)
+```
+crontab: 1 * * * * php cli.php -q cli/queue/watch/queuekey/{redisKeyName}
+```
+
+#### 4. restart, manualy restart the pop process (when you update the code)
+
+##### from url
+```
+://www.hearu.top/cli/queue/restart/queuekey/{redisKeyName}
+```
+
+##### from cli
+```
+php cli.php -q cli/queue/restart/queuekey/{redisKeyName}
+```
+
+#### attention : 
+- if you trigger some function (such as block pop) from url, usually, it takes a long time and the browser will notice the 504 error, 
+don't worry, just close the browser tab, the process is already run successfully on the web server
+
+- if you don't specify the queue name, the program will use the default name
+
+
     
