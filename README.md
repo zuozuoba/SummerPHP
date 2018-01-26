@@ -65,8 +65,8 @@ Test::link('user')
 
 example here : /modules/cli/queue.php
 
-- 核心类: core/RedisQueue::class
-- 例子: /modules/cli/queue.php
+- core class: core/RedisQueue::class
+- usage: /modules/cli/queue.php
 
 #### 1. push to the queue which name is $redisKeyName
 ``` 
