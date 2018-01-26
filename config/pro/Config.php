@@ -7,12 +7,6 @@ class Config
         'format' => 'json',
     );
 
-    public static $redis = array(
-        'host' => '127.0.0.1',
-        'port' => '6379',
-        'auth' => ''
-    );
-
     public static $qi_niu = array(
         'accessKey' => '',
         'secretKey' => '',

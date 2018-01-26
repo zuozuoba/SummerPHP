@@ -31,7 +31,7 @@ class QQ
         $this->callback = $callback_url ? $callback_url : $config['callback_url'];
         $this->cookierand = $cookierand;
 		
-        $this->objRedis = iredis::getInstance();
+        $this->objRedis = IRedis::getInstance();
     }
 
     public function login()

@@ -13,8 +13,8 @@ class DBConfig
 
     public static $read = array(
         array(
-            'host' => '127.0.0.1',
-            'username' => 'root',
+            'host' => '',
+            'username' => '',
             'password' => '',
         )
     );
@@ -23,7 +23,9 @@ class DBConfig
     //虚拟表名 => 数据库名, 表名
     //最好将所有model在此备案, 方便管理
     public static $TableInfo = array(
-        'name'          => 'test, name',
+        'user'          => 'test, user',
+        'note'          => 'test, tiezi',
+        'pinyin'          => 'test, pinyin',
         'test_(\d+)_(\d+)' => 'test, test_$1_$2'
     );
 

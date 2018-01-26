@@ -55,7 +55,7 @@ class WeChat
 		$openid = !empty($matches1[1]) ? $matches1[1] : '0';
 		$text = !empty($matches2[1]) ? $matches2[1] : '没听清...';
 
-		$objRedis = iredis::getInstance();
+		$objRedis = IRedis::getInstance();
 		$objRedis->publish($openid, $text);
 
 	}
@@ -71,7 +71,7 @@ class WeChat
 		$openid = !empty($matches1[1]) ? $matches1[1] : '0';
 		$text = !empty($matches2[1]) ? $matches2[1] : '没听清...';
 
-		$objRedis = iredis::getInstance();
+		$objRedis = IRedis::getInstance();
 		$objRedis->putWeixinVoice($openid, $text);
 	}
 
@@ -108,7 +108,7 @@ EOD;
 	public function getTextOfVoice()
 	{
 		$username = $this->getData('username');
-		exit(iredis::getInstance()->getWeixinVoice($username));
+		exit(IRedis::getInstance()->getWeixinVoice($username));
 	}
 
 	public function r()

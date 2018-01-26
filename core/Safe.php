@@ -33,6 +33,8 @@ class Safe
     public static $Check_SQLCHAR    = 32; //防止有'sql'
     public static $Check_POST       = 64; //限制post方式提交
     public static $Check_INT       	= 128; //限制数字
+    public static $Check_Mobile     = 256; //限制手机号
+    public static $Check_Empty    	= 512; //数据必传
 
 	//self::$Check_DEFAULT = self::$Check_Path | self::$Check_JavaScript | self::$Check_SQLCHAR;
 	public static $Check_DEFAULT = 56;//默认检查项
@@ -68,6 +70,7 @@ class Safe
     }
 
     /**
+	 * desc 分发到相应的函数去校验, 暂时只支持2维数组
      * @param array|string $param
      * @param string $check_item 二进制字符串 e.g Safe::Check_Token | Safe::Check_Refer
 	 * @return string|array 返回被检测的数据
@@ -115,23 +118,18 @@ class Safe
      */
     public static function Create_Token($len=10, $expire=600, $order=1)
     {
-	    $char = array (
-		    'Q', '8', 'y', '5', 'Z', 'G', 'O', 'S', 'N', 'D', 'h',
-		    'W', '1', 'E', 'L', '4', '6', '7', '9',
-		    'a', 'A', 'b', 'B', 'C', 'd', 'e', '2', 'f', 'P',
-		    'g', 'H', 'i', 'X', 'U', 'J', 'k', 'r', 'l', '3', 't', 'M',
-		    'n', 'o', 'p', 'F', 'q', 'K', 'R', 's',
-		    'c', 'm', 'T', 'v', 'j', 'u', 'V', 'w', 'x', 'I', 'Y', 'z'
-	    );
-	    $charLen = count($char) - 1;
-	    $token = '';
-	    for ($i = 0; $i < $len; $i++) {
-		    $index = mt_rand(0, $charLen);
-		    $token .= $char[$index];
-	    }
+	    $str = md5(REQUEST_TIME_FLOAT.mt_rand(1000,9999));
+	    $token = mb_substr($str, 0, $len, 'UTF-8');
 
-        $key = iredis::getFullKeyName(iredis::$Key_Safe_Token, $token);
-        iredis::getInstance()->setex($key, $expire, $order);
+	    //将token写入redis
+        $key = IRedis::getFullKeyName(array(RedisConfig::$Key_Safe_Token, $token));
+		IRedis::getInstance()->setex($key, $expire, $order);
+
+		//将Token写入cookie
+		$arr = explode('.', $_SERVER['SERVER_NAME']);
+		$domain = $arr[count($arr)-2].'.'.$arr[count($arr)-1]; //全域名有效
+
+		setcookie('SUMMERTOKEN', $token, time()+$expire, '/', $domain, FALSE, TRUE);
 
         return $token;
     }
@@ -143,12 +141,12 @@ class Safe
      */
     public static function Check_Token($order=1)
     {
-        $post_token = $_POST['safe_token']; //默认为post, 可以从param里获取
+		$token = !empty($_COOKIE['SUMMERTOKEN']) ? $_COOKIE['SUMMERTOKEN'] : '1';
 
-        $key = iredis::getFullKeyName(iredis::$Key_Safe_Token, $post_token);
-        $rs = iredis::getInstance()->get($key);
+        $key = IRedis::getFullKeyName(array(RedisConfig::$Key_Safe_Token, $token));
+        $rs = IRedis::getInstance()->get($key);
 
-		return ($rs == $order) ? TRUE : '请刷新页面后重新操作~';
+		return ($rs == $order) ? TRUE : '您的操作已过期, 请刷新页面后重新操作~';
     }
 
     /**
@@ -157,15 +155,15 @@ class Safe
      */
     public static function Check_Token_Once()
     {
-        $post_token = $_POST['safe_token']; //默认为post, 可以从param里获取
-        $key = iredis::getFullKeyName(iredis::$Key_Safe_Token, $post_token);
-        $rs = iredis::getInstance()->get($key);
+		$token = !empty($_COOKIE['SUMMERTOKEN']) ? $_COOKIE['SUMMERTOKEN'] : '1';
+        $key = IRedis::getFullKeyName(array(RedisConfig::$Key_Safe_Token, $token));
+        $rs = IRedis::getInstance()->get($key);
 
         if ($rs) {
-            iredis::getInstance()->del($key);
+			IRedis::getInstance()->del($key);
             return TRUE;
         } else {
-            return '请刷新页面后重新操作~';
+            return '您的操作已过期, 请刷新页面后重新操作~';
         }
 
     }
@@ -184,7 +182,7 @@ class Safe
 
 	    $target = $second.'.'.$top;
 
-	    if (array_search($target, Config::$refer_allow) === FALSE) {
+	    if (in_array($target, Config::$refer_allow) === FALSE) {
 			return '未知来源';
 	    } else {
 		    return TRUE;
@@ -198,6 +196,7 @@ class Safe
      */
     public static function Check_JavaScript($param)
     {
+		is_array($param) && ($param = implode('',$param));
         $param = urldecode($param);
         if (strpos($param, '<script') !== false) {
             return '检测到非法输入!';
@@ -214,6 +213,7 @@ class Safe
      */
     public static function Check_Path($param)
     {
+		is_array($param) && ($param = implode('',$param));
         $param = urldecode($param);
         if (strpos($param, '../') !== false) {
             return '检测到非法输入!';
@@ -229,11 +229,12 @@ class Safe
 	 */
 	public static function Check_SQLCHAR($param)
 	{
+		is_array($param) && ($param = implode('',$param));
 		$param = urldecode($param);
 		$param = strtolower($param);
 		$danger = array(
-			'select', 'delete', 'update', 'drop', 'insert',
-			'"', '`', '*/'
+			'select', 'delete', 'update', 'drop', 'insert', 'truncate', '*',
+			//'"', '`', '#'
 		);
 
 		foreach ($danger as $v) {
@@ -252,16 +253,15 @@ class Safe
 	 */
 	public static function Check_INT($param)
 	{
-		return is_numeric($param) ? TRUE : '参数应为整数!';
+		return ((int)$param == $param) ? TRUE : '参数应为整数!';
 	}
 
 	/**
-	 * @param $param
 	 * @return bool
 	 * desc 检测是否是post提交
 	 * 本函数不能检验参数是否是在$_POST中
 	 */
-	public static function Check_POST($param)
+	public static function Check_POST()
 	{
 		if (strcasecmp($_SERVER['REQUEST_METHOD'], 'post') === 0) {
 			return TRUE;
@@ -272,11 +272,30 @@ class Safe
 
 	public static function Check_Empty($param)
 	{
-		if (!empty($param)) {
+		if (strlen($param)) {
 			return TRUE;
 		} else {
 			return '输入不能为空!';
 		}
+	}
+
+	/**
+	 * @param $param
+	 * @return bool
+	 * desc 检测参数是否为合法手机号
+	 */
+	public static function Check_Mobile($param)
+	{
+		if (strlen($param) !== 11) {
+			return '手机号长度应为11位数字';
+		}
+
+		preg_match('/^1[3|4|5|7|8]\d{9}$/', $param, $match);
+		if (empty($match[0])) {
+			return '手机号长度应为11位数字';
+		}
+
+		return TRUE;
 	}
 
 	public static function error($result)

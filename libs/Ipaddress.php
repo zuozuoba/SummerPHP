@@ -24,7 +24,7 @@ class Ipaddress
         $this->fun = Fun::getInstance();
         
         $this->ip = $this->fun->getClientIp();
-        $url = "http://api.map.baidu.com/location/ip?ak=bbCXktcD6Qrbxcpyp1DLkR8b&ip={$ip}&coor=bd09ll";
+        $url = "http://api.map.baidu.com/location/ip?ak=&ip={$this->ip}&coor=bd09ll";
         $output = $this->fun->curl_get($url);
         $location = json_decode($output, true);
 
@@ -47,7 +47,7 @@ class Ipaddress
         if (!$this->ip) {
             return array();
         }
-        $url = "http://api.map.baidu.com/location/ip?ak=bbCXktcD6Qrbxcpyp1DLkR8b&ip={$this->ip}&coor=bd09ll";
+        $url = "http://api.map.baidu.com/location/ip?ak=&ip={$this->ip}&coor=bd09ll";
         
         $output = $this->curl_get($url);
         return json_decode($output, true);

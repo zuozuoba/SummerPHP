@@ -4,10 +4,13 @@
 */
 class QiNiu 
 {
+	public static $Instance = [];
     private $accessKey = '';
     private $secretKey = '';
     private $bucket = '';
     private $upToken = '';
+    private $isOk = FALSE;
+    private $errMsg = '';
 
     public function __construct($bucket='')
     {
@@ -16,6 +19,18 @@ class QiNiu
 		$this->secretKey = $config['secretKey'];
 		$this->bucket = $bucket ? $bucket : $config['bucket'];
 		$this->upToken = $config['upToken'];
+    }
+
+	/**
+	 * desc 单例
+	 * @return object
+	 */
+	public static function getInstance()
+	{
+		if (empty(self::$Instance)) {
+			self::$Instance = new QiNiu();
+		}
+		return self::$Instance;
     }
 
     public function getFileInfo($filename)
@@ -42,6 +57,12 @@ class QiNiu
         $this->upToken = $putPolicy->Token(null);
     }
 
+	/**
+	 * desc 上传单个文件
+	 * @param string $filename 文件名,七牛的key
+	 * @param string $filepath 待上传的文件所在的路径
+	 * @return array
+	 */
     public function upFile($filename, $filepath)
     {
         require_once(LIBPATH.'Qiniu/io.php');
@@ -49,19 +70,25 @@ class QiNiu
 
         $this->getUpToken();
 
-
-        Qiniu_SetKeys($accessKey, $secretKey);
+        Qiniu_SetKeys($this->accessKey, $this->secretKey);
 
         $putExtra = new Qiniu_PutExtra();
         $putExtra->Crc32 = 1;
         $info = Qiniu_PutFile($this->upToken, $filename, $filepath, $putExtra);
-        
+
+        if ($info[1] === null) {
+        	$this->isOk = TRUE;
+		} else {
+        	$this->errMsg = json_encode($info[1]);
+		}
+
         return array(
             'info' => $info[0],
             'error' => $info[1]
             );
     }
 
+    //获取图片的URL, 并未对图片做剪裁等处理
     public function getImageBaseUrl($filename)
     {
         require_once(LIBPATH.'Qiniu/rs.php');
@@ -72,22 +99,16 @@ class QiNiu
         Qiniu_SetKeys($this->accessKey, $this->secretKey);
          
         //生成baseUrl
-        $baseUrl = Qiniu_RS_MakeBaseUrl($domain, $filename);
-
-        return $baseUrl;
+        return  Qiniu_RS_MakeBaseUrl($domain, $filename);
     }
 
+	//生成对图片进行剪裁等处理的字符串, 用户拼接在图片URL后边
     public function getImageView($mode = 0, $width = '', $height = '', $format = '', $interlace='' )
     {
         require_once(LIBPATH.'Qiniu/rs.php');
         require_once(LIBPATH.'Qiniu/fop.php');
-        
-        $domain = $this->bucket.'.qiniudn.com';
 
         Qiniu_SetKeys($this->accessKey, $this->secretKey);
-         
-        //生成baseUrl
-        $baseUrl = Qiniu_RS_MakeBaseUrl($domain, $filename);
 
         //生成fopUrl
         $imgView = new Qiniu_ImageView;
@@ -104,6 +125,7 @@ class QiNiu
         return $imgViewUrl;
     }
 
+    //水印
     public function getTxtWaterMark($text, $font = '', $fontsize = '10', $fill = '', $dissolve = '', $gravity = '', $dx = '', $dy = '')
     {
         require_once(LIBPATH.'Qiniu/rs.php');
@@ -126,10 +148,13 @@ class QiNiu
         return $imgViewUrl;
     }
 
-    //上传到七牛
-    //单个文件
-    //formname: 表单名字; pre: 图片Url中显示的图片名字(也就是七牛中的key)
-    public function upImage($formname, $pre='')
+	/**
+	 * desc form表单,上传单个文件到七牛
+	 * @param string $formname
+	 * @param string $pre 前缀
+	 * @return array
+	 */
+    public function upImage($formname, $pre='qn')
     {
         if (empty($_FILES[$formname]['size'])) {
             return array();
@@ -144,7 +169,7 @@ class QiNiu
         // $arrFileInfo['basename'];
 
         //组织完整入库文件名
-        $rand_time = date('YmdHis').mt_rand(0, 99);
+        $rand_time = date('YmdHis').'_'.mt_rand(100, 999);
         $qiniu_name = $pre.'_'.$rand_time.'.'.$extension;
         $filepath = $_FILES[$formname]['tmp_name'];
         //上传
@@ -160,14 +185,14 @@ class QiNiu
             );
     }
 
-    public function upMoreImage($formname, $pre)
+    //一次上传多张图片
+    public function upMoreImage($formname, $pre='qn')
     {
         if (empty($_FILES[$formname])) {
             return '';
         }
 
-        $count = count($_FILES[$formname]['name']);
-
+        //对$_FILES重新组织
         $arrImages = array();
         foreach ($_FILES[$formname]['name'] as $k => $name) {
             if ($_FILES[$formname]['size'][$k]) {
@@ -179,7 +204,7 @@ class QiNiu
             }
         }
 
-        $this->CI->load->library('qiniu');
+        //循环上传
         $arrUpInfo = array();
         foreach ($arrImages as $k => $v) {
             //取得后缀
@@ -189,12 +214,12 @@ class QiNiu
             $stuffix = end($arrRealName);
 
             //组织完整入库文件名
-            $rand_time = $this->getMsec();
-            $qiniu_name = 'qiniu'.$rand_time.'_'.$pre.'.'.$stuffix;
+			$rand_time = date('YmdHis').'_'.mt_rand(100, 999);
+            $qiniu_name = $pre.'_'.$rand_time.'.'.$stuffix;
             $filepath = $v['tmp_name'];
 
             //上传
-            $this->CI->qiniu->upFile($qiniu_name, $filepath);
+            $this->upFile($qiniu_name, $filepath);
 
             $arrUpInfo[$k] = array(
                 'qiniu_name' => $qiniu_name,
@@ -205,4 +230,16 @@ class QiNiu
         return $arrUpInfo;
 
     }
+
+    //上传是否成功
+	public function isOk()
+	{
+		return $this->isOk;
+    }
+
+	//上传是否成功
+	public function errMsg()
+	{
+		return $this->errMsg;
+	}
 }
