@@ -1,37 +1,41 @@
 # SummerPHP
-##### 模块扁平化, 调用简单, 小巧的PHP框架
-##### 参考文档: http://doc.hearu.top/index.html
+##### a small, concise and more static call PHP framework
+##### documents: http://doc.hearu.top/index.html
 
-# 目录结构
+# project list
 ```
 Summer PHP Framework
-|-- core    框架的核心类
-|-- config  配置文件
-|-- libs    第三方库
-|-- model   模型类, 理论上用于写获取数据的具体逻辑, 只放置在根目录下, 任何控制器都可以调用到
-|-- modules 项目模块
-|-- view   视图文件
-|-- static  静态文件存放
-|-- cli.php  命令行下的入口文件 php cli.php -q m/c/a/
-`-- index.php   入口文件
+|-- core    core of this framework
+|-- config  configure file
+|-- libs    other tool class
+|-- model   logic of get data 
+|-- modules all controllers class here
+|-- view   tpl directory
+|-- static  static file like css, js, image etc.
+|-- cli.php  interface of cli php cli.php -q m/c/a/
+`-- index.php   interface of web
 ```
 
-# 主要用法参考
-### URL访问格式
+# main function usage reference
+### format of URL to visit the action
 ```
-//加载默认的代码
+//run the default action: /index/index/index
 http://www.test.com/
 
-//加载指定的代码
+//run the other action module/controller/action with params key1 and key2
 http://www.test.com/module/controller/action/key1/value1/key2/value2
 
-//URI路由, 例如: 获取文章列表的第二页(需要在配置文件RoutConfig::$Path数组里写一行对应关系)
-http://www.test.com/article_list_2  //对应路由规则 'article_list_(\d+)' => 'index/index/route/page/$1'
+//use uri to route(rewrite to the real action use short writing), 
+// for example: to get the second page of article list 
+// now you need to add a key=>value item in the array of file RoutConfig: member variable array $Path
+http://www.test.com/article_list_2  //which the key=>value item is 'article_list_(\d+)' => 'index/index/route/page/$1'
 
-//二级域名路由, 例如跳转到不同的子站(需要在配置文件RouteConfig::$Domain数组里写一行对应关系)
-http://doc.test.com/  //对应路由规则 'doc' => 'doc/index/index'
+//use second-level domain to route , 
+//for example: you need redirect to the different sub site accroding to the different second-level domain 
+// and you need to add a key=>value item in the array of file RoutConfig: member variable array $Domain
+http://doc.test.com/  //which the key=>value item is 'doc' => 'doc/index/index'
 ```    
-### 获取参数
+### get the request params
 ```
 Request::Get('a', 'default');
 Request::Post('a');
@@ -39,7 +43,7 @@ Request::Cookie('a');
 Request::Route('a');
 ```
 
-### 查询数据库
+### get and format the data from mysql
 ```
 $rs = Test::link('note')->fields('id,content')
         ->whereGE('id', 1)
@@ -47,14 +51,22 @@ $rs = Test::link('note')->fields('id,content')
         ->select()
         ->getAll();
     echo '<pre>';var_dump($rs, Test::$currentSql);
+   
+$sql = 'select * from user';
+Test::link('user')
+         ->query($sql)
+         ->data()
+         ->array_column('age', 'username')
+         ->array_sum()
+         ->pre();
 ```
 
-### Redis消息队列
+### Redis message queue
 
 ```
-例子在: /modules/cli/queue.php
+example here : /modules/cli/queue.php
 
-1. push, 入队列
+1. push to the queue which name is 'redisKey'
 代码调用Lib: RedisQueue::pushQueue(redisKey, Json)
 其中Json: _class和_method是必传的, 用于回调
  
