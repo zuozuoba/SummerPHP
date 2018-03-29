@@ -31,10 +31,6 @@ http://www.test.com/module/controller/action/key1/value1/key2/value2
 // now you need to add a key=>value item in the array of file RoutConfig: member variable array $Path
 http://www.test.com/article_list_2  //which the key=>value item is 'article_list_(\d+)' => 'index/index/route/page/$1'
 
-//use second-level domain to route , 
-//for example: you need redirect to the different sub site accroding to the different second-level domain 
-// and you need to add a key=>value item in the array of file RoutConfig: member variable array $Domain
-http://doc.test.com/  //which the key=>value item is 'doc' => 'doc/index/index'
 ```    
 ### get the request params
 ```
