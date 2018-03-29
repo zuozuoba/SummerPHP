@@ -18,7 +18,7 @@ Summer PHP Framework
 ```
 
 # main function usage reference
-### format of URL to visit the action
+### format of URL to visit a action
 ```
 //run the default action: /index/index/index
 http://www.test.com/
@@ -45,7 +45,7 @@ Request::getClientIp();
 
 ```
 
-### Response information
+### Response info to client
 ```
 Response::error('wrong param', $a, 50001);
 Response::success($a, 'user info list', 20000);
