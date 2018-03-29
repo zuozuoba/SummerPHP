@@ -1,5 +1,6 @@
 # SummerPHP
 ##### a small, concise and more static call PHP framework
+##### newest version: https://gitee.com/myDcool/SummerPHP
 ##### documents: http://doc.hearu.top/index.html
 
 # project structure
@@ -41,12 +42,29 @@ Request::Get('a', 'default');
 Request::Post('a');
 Request::Cookie('a');
 Request::Route('a');
+
+Request::isPost();
+Request::getClientIp();
+...
+
+```
+
+### Response information
+```
+Response::error('wrong param', $a, 50001);
+Response::success($a, 'user info list', 20000);
+
+Response::ini()->code(10000)->msg('user info list')->data($a)->json(); //call through chain
+
+Response::redirect('login ok, visit home page 3sec later', 'http://doc.hearu.top', 3); //wait 3sce then jump to other url
+Response::notify('some text here ...');
 ```
 
 ### get and format the data from mysql
 ```
 $rs = Test::link('note')->fields('id,content')
         ->whereGE('id', 1)
+        ->order('id desc')
         ->limit(10)
         ->select()
         ->getAll();
@@ -59,6 +77,13 @@ Test::link('user')
          ->array_column('age', 'username')
          ->array_sum()
          ->pre();
+```
+
+### file log
+```
+FileLog::ini('summer/phplog/proj1')->prefix('prefix description of log')->info('log content'); // log file name: yyyy-mm-dd.log
+
+FileLog::ini('summer/phplog/proj1', 'test')->prefix('prefix description of log')->info('log content'); //log file name: test.log
 ```
 
 ### Redis message queue
@@ -84,15 +109,15 @@ RedisQueue::pushQueue($redisKeyName, $params)
 
 ##### trigger from url
 ```
-www.hearu.top/cli/queue/blockpop/queuekey/{redisKeyName} (直接启动一个新的进程)
-www.hearu.top/cli/queue/watch/queuekey/{redisKeyName} (有同名的进程就不再启动新的)
+www.hearu.top/cli/queue/blockpop/queuekey/{redisKeyName} (starup a new process)
+www.hearu.top/cli/queue/watch/queuekey/{redisKeyName} (there already a samename process, no need to starup)
 ```
 
 ##### trigger from cli
 ```
-php cli.php -q cli/queue/blockpop/queuekey/{redisKeyName} (直接启动一个新的进程)
+php cli.php -q cli/queue/blockpop/queuekey/{redisKeyName} (starup a new process)
 
-php cli.php -q cli/queue/watch/queuekey/{redisKeyName} (有同名的进程就不再启动新的)
+php cli.php -q cli/queue/watch/queuekey/{redisKeyName} (there already a samename process, no need to starup)
 ```
 - when the message pop from the queue, the program will take out the value of _class and _method and execute _method 
 
