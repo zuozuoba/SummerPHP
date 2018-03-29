@@ -1,7 +1,7 @@
 # SummerPHP
-##### a small, concise and more static call PHP framework
-##### newest version: https://gitee.com/myDcool/SummerPHP
-##### documents: http://doc.hearu.top/index.html
+##### a small, concise PHP framework
+##### newest version: https://gitee.com/myDcool/SummerPHP (chinese)
+##### documents: http://doc.hearu.top/index.html (chinese)
 
 # project structure
 ```
