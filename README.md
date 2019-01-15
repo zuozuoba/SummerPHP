@@ -1,5 +1,5 @@
 # SummerPHP
-##### a small, concise PHP framework
+##### a PHP framework: pluggable; multiple mysql database hosts support; Read / write separation; 
 ##### newest version: https://gitee.com/myDcool/SummerPHP (chinese)
 ##### documents: http://doc.hearu.top/index.html (chinese)
 
